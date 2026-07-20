@@ -136,11 +136,11 @@ AdMob application and ad-unit IDs identify ad inventory; they are not account
 credentials or secrets. AdMob login credentials, payment information, API
 private keys, and service-account credentials must never be committed.
 
-Planned approach:
+Implemented approach:
 
-- Use the current Google Mobile Ads SDK and Google User Messaging Platform
-  (UMP) consent SDK.
-- Prefer a standard adaptive banner outside the active puzzle board so the ad
+- Use GMA Next-Gen SDK `1.2.1` and Google User Messaging Platform (UMP) SDK
+  `4.0.0`.
+- Show a standard adaptive banner outside the active puzzle board so the ad
   never covers points, lines, controls, or completion feedback.
 - If interstitial ads are added, show them only at natural breaks such as after
   a completed puzzle, never during dragging or immediately on app launch.
@@ -158,6 +158,10 @@ Planned approach:
   based on the actual SDK configuration.
 - The game must remain functional when an ad is unavailable, blocked, or
   offline.
+
+The integration lives in `ads/AdsManager.kt` and the banner Compose view in
+`view/UntangleScreen.kt`. Debug builds use Google's sample app and banner IDs;
+release builds use the production IDs above.
 
 Google's current Next-Gen Mobile Ads SDK documentation is the implementation
 authority:
