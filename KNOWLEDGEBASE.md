@@ -172,7 +172,13 @@ authority:
 - Hint behaviour, if any.
 - Banner-only launch versus banner plus completion interstitials.
 - Final visual identity, launcher icon, and store assets.
-- Privacy-policy hosting URL.
+
+## Privacy policy
+
+- Source: `untangle-privacy-policy.html`
+- Public URL:
+  `https://hamidzar2002.github.io/untangle/untangle-privacy-policy.html`
+- Hosting: GitHub Pages, deployed by `.github/workflows/pages.yml`
 
 [planarity]: http://planarity.net
 [kindle-untangle]: https://github.com/kbarni/kindlepuzzles/blob/main/untangle.c
