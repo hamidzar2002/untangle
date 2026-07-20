@@ -207,10 +207,29 @@ GitHub Actions release signing requires these repository secrets:
 - `ANDROID_KEY_ALIAS`
 - `ANDROID_KEY_PASSWORD`
 
+All four secrets were installed in the `hamidzar2002/untangle` repository on
+July 20, 2026. Their values must not be copied into this knowledge base.
+
 On pushes to `main` and manual runs, `.github/workflows/android.yml` decodes the
 keystore into the temporary runner directory, builds a signed release AAB, and
 uploads it as `untangle-release-aab`. Pull requests run tests and build the
 debug APK without receiving signing secrets.
+
+Signing implementation commit: `6f9c444` (`Add signed release workflow`).
+
+Local verification completed successfully:
+
+- unit tests and debug APK build passed;
+- Gradle `validateSigningRelease` passed;
+- `bundleRelease` produced
+  `app/build/outputs/bundle/release/app-release.aab`;
+- `jarsigner -verify` reported `jar verified`; and
+- the AAB signer certificate matches the SHA-1 and SHA-256 fingerprints above.
+
+The first signed GitHub Actions run is
+`https://github.com/hamidzar2002/untangle/actions/runs/29759846735`. At the last
+check on July 20, 2026, secret decoding, unit tests, and the debug APK build had
+passed, while the signed release bundle step was still running.
 
 Never commit the signing directory, keystore, Base64 value, or passwords. Back
 up the upload keystore securely; future releases for
