@@ -1,0 +1,165 @@
+# Untangle Knowledge Base
+
+This document is the durable product and implementation reference for the
+Untangle Android project.
+
+## Product identity
+
+- App name: **Untangle**
+- Platform: Android
+- Package: `com.hamidzar2002.untangle`
+- Distribution: free on Google Play
+- Monetisation: Google AdMob ads
+- Core promise: move points until none of the connecting lines cross
+
+## Instructions: Untangle
+
+You are given a number of points, some of which have lines drawn between them.
+You can move the points about arbitrarily; your aim is to position the points
+so that no line crosses another.
+
+Simon Tatham originally saw this in the form of a Flash game called
+[Planarity][planarity], written by John Tantalo.
+
+### Untangle controls
+
+In the original desktop version, a point is moved by clicking it with the left
+mouse button and dragging it into a new position.
+
+The cursor keys may also be used to navigate amongst the points. Pressing the
+Enter key toggles dragging the currently highlighted point. Pressing Tab or
+Space cycles through all the points.
+
+The Android interaction must translate those controls naturally:
+
+- Touch and drag a point to reposition it.
+- Make points large enough to acquire comfortably without hiding their exact
+  centre.
+- Keep keyboard/D-pad focus support for Chromebooks, tablets, and accessibility.
+- Clearly distinguish the selected or actively dragged point.
+- Detect completion as soon as no two non-adjacent edges cross.
+
+### Untangle parameters
+
+There is one core custom parameter:
+
+#### Number of points
+
+Controls the size of the puzzle by specifying the number of points in the
+generated graph.
+
+The Android UI may present friendly presets in addition to a custom point
+count, but the underlying puzzle parameter remains the number of points.
+
+## Gameplay requirements
+
+- Generate a planar graph, then scramble its point positions to create crossings.
+- The scrambled puzzle must contain at least one crossing.
+- Dragging changes point positions only; it does not change graph connectivity.
+- Lines sharing an endpoint do not count as crossings.
+- A puzzle is solved when every pair of non-adjacent line segments is
+  non-intersecting.
+- Support new puzzle, restart, and completion feedback.
+- Preserve the current unfinished puzzle across process death and app restarts.
+- Keep the puzzle playable offline after installation; ads may fail gracefully
+  when the device is offline.
+
+## Source references
+
+The implementation should be an idiomatic Kotlin/Jetpack Compose
+reimplementation informed by Simon Tatham's original algorithms, rather than
+embedding the C UI directly.
+
+- User-selected C reference:
+  [kbarni/kindlepuzzles `untangle.c`][kindle-untangle]
+- Original collection and playable reference:
+  [Simon Tatham's Portable Puzzle Collection][puzzles]
+- Original Untangle manual:
+  [Chapter 18: Untangle][untangle-manual]
+- Existing open-source Android port:
+  [chrisboyle/sgtpuzzles][android-port]
+
+The C reference is valuable for:
+
+- planar graph generation;
+- puzzle description and parameter handling;
+- segment intersection rules;
+- completion detection;
+- input semantics and rendering-state behaviour.
+
+The Android app should separate the port into testable Kotlin components:
+
+- `domain/model`: points, edges, puzzle parameters, and game state;
+- `domain/generator`: deterministic planar graph generation and scrambling;
+- `domain/geometry`: robust segment intersection and crossing count;
+- `data`: puzzle persistence, settings, and statistics;
+- `ui/game`: Compose canvas, gestures, focus, controls, and completion feedback;
+- `ads`: consent, SDK initialisation, and ad presentation.
+
+## Licence and attribution
+
+Simon Tatham's Portable Puzzle Collection is distributed under the MIT
+Licence. Any copied or substantially derived source must retain the upstream
+copyright and permission notice.
+
+Before the first public build:
+
+- add the complete upstream MIT text and copyright notice to `THIRD_PARTY_NOTICES.md`;
+- add an in-app Open Source Licences entry;
+- identify substantially ported algorithms in source comments;
+- do not copy branding, store graphics, icons, or other artwork from third-party
+  Android releases unless their licence explicitly permits it;
+- retain attribution even though the app is free and ad-supported.
+
+## Advertising model
+
+Untangle will be free and supported by Google AdMob.
+
+Planned approach:
+
+- Use the current Google Mobile Ads SDK and Google User Messaging Platform
+  (UMP) consent SDK.
+- Prefer a standard adaptive banner outside the active puzzle board so the ad
+  never covers points, lines, controls, or completion feedback.
+- If interstitial ads are added, show them only at natural breaks such as after
+  a completed puzzle, never during dragging or immediately on app launch.
+- Do not show an interstitial after every puzzle; use a conservative frequency
+  cap.
+- Never make an accidental ad tap likely through layout movement or proximity
+  to game controls.
+- Use Google's official test ad IDs in all debug builds. Production IDs must
+  come from the project's AdMob account and must not be committed as secrets.
+- Request/update consent at every launch as required by UMP, expose a privacy
+  options entry point when required, and do not request ads until consent state
+  permits it.
+- Provide a public privacy policy before the Play release.
+- Complete Google Play's **Contains ads** declaration and Data safety form
+  based on the actual SDK configuration.
+- The game must remain functional when an ad is unavailable, blocked, or
+  offline.
+
+Google's current Next-Gen Mobile Ads SDK documentation is the implementation
+authority:
+
+- [GMA Next-Gen Android quick start][gma-quick-start]
+- [UMP privacy and consent setup][ump]
+- [Official Google Mobile Ads Android examples][google-ads-samples]
+
+## Decisions still needed
+
+- Initial point-count presets and upper/lower limits.
+- Hint behaviour, if any.
+- Banner-only launch versus banner plus completion interstitials.
+- AdMob application ID and production ad-unit IDs.
+- Final visual identity, launcher icon, and store assets.
+- Privacy-policy hosting URL.
+
+[planarity]: http://planarity.net
+[kindle-untangle]: https://github.com/kbarni/kindlepuzzles/blob/main/untangle.c
+[puzzles]: https://www.chiark.greenend.org.uk/~sgtatham/puzzles/
+[untangle-manual]: https://www.chiark.greenend.org.uk/~sgtatham/puzzles/doc/untangle.html
+[android-port]: https://github.com/chrisboyle/sgtpuzzles
+[gma-quick-start]: https://developers.google.com/admob/android/next-gen/quick-start
+[ump]: https://developers.google.com/admob/android/privacy
+[google-ads-samples]: https://github.com/googleads/googleads-mobile-android-examples
+
