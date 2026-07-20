@@ -127,6 +127,15 @@ Before the first public build:
 
 Untangle will be free and supported by Google AdMob.
 
+### Production AdMob identifiers
+
+- AdMob App ID: `ca-app-pub-6961751302262101~7558692283`
+- Banner ad-unit ID: `ca-app-pub-6961751302262101/5961559645`
+
+AdMob application and ad-unit IDs identify ad inventory; they are not account
+credentials or secrets. AdMob login credentials, payment information, API
+private keys, and service-account credentials must never be committed.
+
 Planned approach:
 
 - Use the current Google Mobile Ads SDK and Google User Messaging Platform
@@ -139,8 +148,8 @@ Planned approach:
   cap.
 - Never make an accidental ad tap likely through layout movement or proximity
   to game controls.
-- Use Google's official test ad IDs in all debug builds. Production IDs must
-  come from the project's AdMob account and must not be committed as secrets.
+- Use Google's official test ad IDs in all debug builds. Release builds use the
+  production identifiers recorded above.
 - Request/update consent at every launch as required by UMP, expose a privacy
   options entry point when required, and do not request ads until consent state
   permits it.
@@ -162,7 +171,6 @@ authority:
 - Initial point-count presets and upper/lower limits.
 - Hint behaviour, if any.
 - Banner-only launch versus banner plus completion interstitials.
-- AdMob application ID and production ad-unit IDs.
 - Final visual identity, launcher icon, and store assets.
 - Privacy-policy hosting URL.
 
