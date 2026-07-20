@@ -87,14 +87,26 @@ The C reference is valuable for:
 - completion detection;
 - input semantics and rendering-state behaviour.
 
-The Android app should separate the port into testable Kotlin components:
+The Android app follows Model-View-Controller (MVC), adapted for lifecycle-aware
+Jetpack Compose:
 
-- `domain/model`: points, edges, puzzle parameters, and game state;
-- `domain/generator`: deterministic planar graph generation and scrambling;
-- `domain/geometry`: robust segment intersection and crossing count;
+- `model`: pure Kotlin points, edges, puzzle state, generation, segment
+  intersection, crossing count, and completion rules. The model has no Android
+  or Compose dependencies.
+- `view`: stateless Compose screens and canvas rendering. Views receive
+  immutable model values and emit user-action callbacks; they do not mutate
+  game state or implement puzzle rules.
+- `controller`: an Android `ViewModel` that owns observable state and translates
+  view actions into model operations. It contains coordination logic, not
+  geometry or rendering.
+
+Supporting services remain outside the MVC core:
+
 - `data`: puzzle persistence, settings, and statistics;
-- `ui/game`: Compose canvas, gestures, focus, controls, and completion feedback;
 - `ads`: consent, SDK initialisation, and ad presentation.
+
+Dependency direction is `View -> Controller -> Model`. The model never imports
+the controller or view, and the controller never imports Compose UI.
 
 ## Licence and attribution
 
@@ -162,4 +174,3 @@ authority:
 [gma-quick-start]: https://developers.google.com/admob/android/next-gen/quick-start
 [ump]: https://developers.google.com/admob/android/privacy
 [google-ads-samples]: https://github.com/googleads/googleads-mobile-android-examples
-
