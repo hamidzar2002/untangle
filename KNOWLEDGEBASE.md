@@ -184,6 +184,39 @@ authority:
   `https://hamidzar2002.github.io/untangle/untangle-privacy-policy.html`
 - Hosting: GitHub Pages, deployed by `.github/workflows/pages.yml`
 
+## Android release signing
+
+Untangle uses a dedicated upload key with Google Play App Signing. The private
+keystore and its passwords must remain outside the repository.
+
+Local signing files:
+
+- Signing directory: `/mnt/c/Users/earmzah/games/untangle-signing`
+- Upload keystore: `untangle-upload.jks`
+- Public upload certificate: `untangle-upload-certificate.pem`
+- GitHub secret values: `github-actions-secrets.txt`
+- Certificate owner: `CN=Hamid Zarrazvand, O=Untangle, C=IE`
+- SHA-1: `36:A1:76:EB:B3:00:0D:E5:D4:70:0D:0E:11:15:48:8A:B7:E4:D6:E3`
+- SHA-256:
+  `F6:97:5D:B4:56:B6:18:97:3F:2E:C2:A0:6C:D7:26:4D:9B:F5:D8:A4:E8:83:8F:21:9E:63:04:3D:DD:B0:90:A4`
+
+GitHub Actions release signing requires these repository secrets:
+
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+
+On pushes to `main` and manual runs, `.github/workflows/android.yml` decodes the
+keystore into the temporary runner directory, builds a signed release AAB, and
+uploads it as `untangle-release-aab`. Pull requests run tests and build the
+debug APK without receiving signing secrets.
+
+Never commit the signing directory, keystore, Base64 value, or passwords. Back
+up the upload keystore securely; future releases for
+`com.hamidzar2002.untangle` must use the same registered upload key unless an
+upload-key reset is completed through Google Play.
+
 [planarity]: http://planarity.net
 [kindle-untangle]: https://github.com/kbarni/kindlepuzzles/blob/main/untangle.c
 [puzzles]: https://www.chiark.greenend.org.uk/~sgtatham/puzzles/
