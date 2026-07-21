@@ -17,13 +17,21 @@ fun UntangleRoute(
     adsManager: AdsManager,
     controller: UntangleController = viewModel()
 ) {
-    val game by controller.game.collectAsStateWithLifecycle()
+    val session by controller.session.collectAsStateWithLifecycle()
     val adsState by adsManager.uiState.collectAsStateWithLifecycle()
 
     UntangleScreen(
-        game = game,
+        game = session.game,
+        level = session.level,
+        startingNodeCount = session.startingNodeCount,
+        moves = session.moves,
+        showCompletion = session.showCompletion,
         onPointMoved = controller::movePoint,
+        onMoveFinished = controller::finishMove,
         onRestart = controller::restartPuzzle,
+        onNewPuzzle = controller::newPuzzle,
+        onNextPuzzle = controller::nextPuzzle,
+        onNodeCountSelected = controller::selectStartingNodeCount,
         showBanner = adsState.adsReady,
         showPrivacyOptions = adsState.privacyOptionsRequired,
         onPrivacyOptions = { adsManager.showPrivacyOptions(activity) }

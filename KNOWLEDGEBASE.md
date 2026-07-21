@@ -64,6 +64,23 @@ count, but the underlying puzzle parameter remains the number of points.
 - Keep the puzzle playable offline after installation; ads may fail gracefully
   when the device is offline.
 
+### Implemented game loop
+
+- The default progression begins with 6 nodes.
+- Players can begin a new progression with 4 through 24 nodes.
+- Each completed level adds one node and two edges, up to 30 nodes.
+- Each graph is a randomly triangulated convex planar graph with `2n - 3`
+  edges and a known crossing-free solution.
+- Node positions are repeatedly permuted and the layout with the most crossings
+  is selected; a generated round is rejected if it has no crossings.
+- Completion is evaluated when a drag finishes. A congratulations dialog shows
+  the level and move count, then offers `Next level` or `Replay`.
+- `New` creates another puzzle at the same level, while `Restart` restores the
+  current puzzle's original scrambled layout.
+- The implementation is split across `model/PuzzleGenerator.kt`,
+  `model/GameSession.kt`, `controller/UntangleController.kt`, and the stateless
+  Compose view in `view/UntangleScreen.kt`.
+
 ## Source references
 
 The implementation should be an idiomatic Kotlin/Jetpack Compose
@@ -172,9 +189,9 @@ authority:
 
 ## Decisions still needed
 
-- Initial point-count presets and upper/lower limits.
 - Hint behaviour, if any.
-- Banner-only launch versus banner plus completion interstitials.
+- Whether to add conservatively capped completion interstitials; the current
+  release uses banners only.
 - Final visual identity, launcher icon, and store assets.
 
 ## Privacy policy

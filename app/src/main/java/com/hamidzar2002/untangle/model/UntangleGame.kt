@@ -67,20 +67,4 @@ data class UntangleGame(
         }
     }
 
-    companion object {
-        fun starterPuzzle(): UntangleGame = UntangleGame(
-            points = listOf(
-                GamePoint(id = 0, x = 0.15f, y = 0.15f),
-                GamePoint(id = 1, x = 0.85f, y = 0.85f),
-                GamePoint(id = 2, x = 0.85f, y = 0.15f),
-                GamePoint(id = 3, x = 0.15f, y = 0.85f)
-            ),
-            edges = listOf(
-                GameEdge(firstPointId = 0, secondPointId = 1),
-                GameEdge(firstPointId = 1, secondPointId = 2),
-                GameEdge(firstPointId = 2, secondPointId = 3),
-                GameEdge(firstPointId = 3, secondPointId = 0)
-            )
-        )
-    }
 }

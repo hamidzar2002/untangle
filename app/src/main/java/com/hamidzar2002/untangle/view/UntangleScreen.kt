@@ -19,7 +19,10 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -55,6 +58,7 @@ import com.google.android.libraries.ads.mobile.sdk.common.AdLoadCallback
 import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 import com.hamidzar2002.untangle.BuildConfig
 import com.hamidzar2002.untangle.model.GamePoint
+import com.hamidzar2002.untangle.model.PuzzleGenerator
 import com.hamidzar2002.untangle.model.UntangleGame
 import com.hamidzar2002.untangle.ui.theme.UntangleTheme
 import kotlin.math.hypot
@@ -63,13 +67,26 @@ import kotlin.math.roundToInt
 @Composable
 fun UntangleScreen(
     game: UntangleGame,
+    level: Int,
+    startingNodeCount: Int,
+    moves: Int,
+    showCompletion: Boolean,
     onPointMoved: (pointId: Int, x: Float, y: Float) -> Unit,
+    onMoveFinished: () -> Unit,
     onRestart: () -> Unit,
+    onNewPuzzle: () -> Unit,
+    onNextPuzzle: () -> Unit,
+    onNodeCountSelected: (Int) -> Unit,
     showBanner: Boolean = false,
     showPrivacyOptions: Boolean = false,
     onPrivacyOptions: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var showNodePicker by remember { mutableStateOf(false) }
+    var nodePickerValue by remember(startingNodeCount) {
+        mutableStateOf(startingNodeCount.toFloat())
+    }
+
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -101,9 +118,16 @@ fun UntangleScreen(
             UntangleBoard(
                 game = game,
                 onPointMoved = onPointMoved,
+                onMoveFinished = onMoveFinished,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
+            )
+
+            Text(
+                text = "Level $level  •  ${game.points.size} nodes  •  $moves moves",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium
             )
 
             Row(
@@ -124,9 +148,24 @@ fun UntangleScreen(
                     },
                     fontWeight = FontWeight.Medium
                 )
-                Button(onClick = onRestart) {
-                    Text("Restart")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = onNewPuzzle) {
+                        Text("New")
+                    }
+                    Button(onClick = onRestart) {
+                        Text("Restart")
+                    }
                 }
+            }
+
+            OutlinedButton(
+                onClick = {
+                    nodePickerValue = startingNodeCount.toFloat()
+                    showNodePicker = true
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Choose starting nodes ($startingNodeCount)")
             }
 
             if (showBanner) {
@@ -137,6 +176,69 @@ fun UntangleScreen(
                 )
             }
         }
+    }
+
+    if (showCompletion) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Congratulations!") },
+            text = {
+                Text(
+                    "You untangled level $level in $moves moves. " +
+                        "The next puzzle has more nodes and more connections."
+                )
+            },
+            confirmButton = {
+                Button(onClick = onNextPuzzle) {
+                    Text("Next level")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onRestart) {
+                    Text("Replay")
+                }
+            }
+        )
+    }
+
+    if (showNodePicker) {
+        val selectedCount = nodePickerValue.roundToInt()
+        AlertDialog(
+            onDismissRequest = { showNodePicker = false },
+            title = { Text("Starting node count") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "$selectedCount nodes",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Text("Each completed level adds another node.")
+                    Slider(
+                        value = nodePickerValue,
+                        onValueChange = { nodePickerValue = it },
+                        valueRange = PuzzleGenerator.MIN_NODE_COUNT.toFloat()..
+                            PuzzleGenerator.MAX_STARTING_NODE_COUNT.toFloat(),
+                        steps = PuzzleGenerator.MAX_STARTING_NODE_COUNT -
+                            PuzzleGenerator.MIN_NODE_COUNT - 1
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showNodePicker = false
+                        onNodeCountSelected(selectedCount)
+                    }
+                ) {
+                    Text("Start new game")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNodePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -200,6 +302,7 @@ private const val TAG = "UntangleBanner"
 private fun UntangleBoard(
     game: UntangleGame,
     onPointMoved: (pointId: Int, x: Float, y: Float) -> Unit,
+    onMoveFinished: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val boardColor = MaterialTheme.colorScheme.surface
@@ -209,6 +312,7 @@ private fun UntangleBoard(
     val activePointColor = MaterialTheme.colorScheme.secondary
     val latestGame by rememberUpdatedState(game)
     val latestOnPointMoved by rememberUpdatedState(onPointMoved)
+    val latestOnMoveFinished by rememberUpdatedState(onMoveFinished)
     var draggedPointId by remember { mutableStateOf<Int?>(null) }
 
     Canvas(
@@ -242,7 +346,11 @@ private fun UntangleBoard(
                             }
                             ?.first
                     },
-                    onDragEnd = { draggedPointId = null },
+                    onDragEnd = {
+                        val pointWasMoved = draggedPointId != null
+                        draggedPointId = null
+                        if (pointWasMoved) latestOnMoveFinished()
+                    },
                     onDragCancel = { draggedPointId = null },
                     onDrag = { change, _ ->
                         draggedPointId?.let { pointId ->
@@ -301,9 +409,17 @@ private fun UntangleBoard(
 private fun UntangleScreenPreview() {
     UntangleTheme {
         UntangleScreen(
-            game = UntangleGame.starterPuzzle(),
+            game = PuzzleGenerator().generate(nodeCount = 6, level = 1, seed = 1L).game,
+            level = 1,
+            startingNodeCount = 6,
+            moves = 0,
+            showCompletion = false,
             onPointMoved = { _, _, _ -> },
-            onRestart = {}
+            onMoveFinished = {},
+            onRestart = {},
+            onNewPuzzle = {},
+            onNextPuzzle = {},
+            onNodeCountSelected = {}
         )
     }
 }
