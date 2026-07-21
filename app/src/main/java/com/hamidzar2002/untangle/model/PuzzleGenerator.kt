@@ -3,7 +3,9 @@ package com.hamidzar2002.untangle.model
 import java.util.Random
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 data class GeneratedPuzzle(
     val game: UntangleGame,
@@ -11,8 +13,8 @@ data class GeneratedPuzzle(
 )
 
 /**
- * Builds a planar graph in a known crossing-free layout, then permutes the
- * point positions until the player-facing layout contains crossings.
+ * Builds a planar graph in a known crossing-free layout, then scatters the
+ * point positions randomly until the player-facing layout contains crossings.
  */
 class PuzzleGenerator {
     fun generate(nodeCount: Int, level: Int, seed: Long): GeneratedPuzzle {
@@ -81,24 +83,17 @@ class PuzzleGenerator {
     ): UntangleGame {
         var best = solution
         var bestCrossings = 0
-        val coordinates = solution.points.map { point -> point.x to point.y }
 
         repeat(attempts) {
-            val shuffled = coordinates.toMutableList()
-            for (index in shuffled.lastIndex downTo 1) {
-                val swapIndex = random.nextInt(index + 1)
-                val temporary = shuffled[index]
-                shuffled[index] = shuffled[swapIndex]
-                shuffled[swapIndex] = temporary
-            }
-
             val candidate = solution.copy(
-                points = solution.points.mapIndexed { index, point ->
-                    point.copy(
-                        x = shuffled[index].first,
-                        y = shuffled[index].second
-                    )
-                }
+                points = createRandomLayout(solution.points.size, random)
+                    .mapIndexed { index, coordinates ->
+                        GamePoint(
+                            id = solution.points[index].id,
+                            x = coordinates.first,
+                            y = coordinates.second
+                        )
+                    }
             )
             if (candidate.crossingCount > bestCrossings) {
                 best = candidate
@@ -108,6 +103,52 @@ class PuzzleGenerator {
 
         return best
     }
+
+    private fun createRandomLayout(
+        nodeCount: Int,
+        random: Random
+    ): List<Pair<Float, Float>> {
+        val points = mutableListOf<Pair<Float, Float>>()
+        val minimumDistance = (0.44 / sqrt(nodeCount.toDouble())).toFloat()
+
+        repeat(nodeCount) {
+            var selected: Pair<Float, Float>? = null
+            var remainingAttempts = PLACEMENT_ATTEMPTS
+            while (selected == null && remainingAttempts > 0) {
+                val candidate = randomCoordinate(random)
+                if (points.all { point ->
+                        hypot(
+                            candidate.first - point.first,
+                            candidate.second - point.second
+                        ) >= minimumDistance
+                    }
+                ) {
+                    selected = candidate
+                }
+                remainingAttempts--
+            }
+
+            // Rejection sampling almost always succeeds. If it does not, keep
+            // the best of another random batch instead of forming a pattern.
+            val fallback = selected ?: List(PLACEMENT_ATTEMPTS) {
+                randomCoordinate(random)
+            }.maxBy { candidate ->
+                points.minOfOrNull { point ->
+                    hypot(
+                        candidate.first - point.first,
+                        candidate.second - point.second
+                    )
+                } ?: Float.MAX_VALUE
+            }
+            points += fallback
+        }
+
+        return points
+    }
+
+    private fun randomCoordinate(random: Random): Pair<Float, Float> =
+        (BOARD_MARGIN + (random.nextFloat() * BOARD_RANGE)) to
+            (BOARD_MARGIN + (random.nextFloat() * BOARD_RANGE))
 
     private fun edgeKey(a: Int, b: Int): EdgeKey =
         EdgeKey(first = minOf(a, b), second = maxOf(a, b))
@@ -121,6 +162,9 @@ class PuzzleGenerator {
 
         private const val GRAPH_ATTEMPTS = 8
         private const val SCRAMBLE_ATTEMPTS = 120
+        private const val PLACEMENT_ATTEMPTS = 160
         private const val SEED_STEP = 104_729L
+        private const val BOARD_MARGIN = 0.07f
+        private const val BOARD_RANGE = 1f - (BOARD_MARGIN * 2f)
     }
 }

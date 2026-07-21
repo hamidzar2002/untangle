@@ -71,8 +71,11 @@ count, but the underlying puzzle parameter remains the number of points.
 - Each completed level adds one node and two edges, up to 30 nodes.
 - Each graph is a randomly triangulated convex planar graph with `2n - 3`
   edges and a known crossing-free solution.
-- Node positions are repeatedly permuted and the layout with the most crossings
-  is selected; a generated round is rejected if it has no crossings.
+- Visible node positions are scattered randomly across the board with minimum
+  spacing. Multiple layouts are sampled and the layout with the most crossings
+  is selected; a generated round is rejected if it has no crossings. The
+  circular arrangement exists only as the hidden crossing-free solution and is
+  never used as the starting layout.
 - Completion is evaluated when a drag finishes. A congratulations dialog shows
   the level and move count, then offers `Next level` or `Replay`.
 - `New` creates another puzzle at the same level, while `Restart` restores the

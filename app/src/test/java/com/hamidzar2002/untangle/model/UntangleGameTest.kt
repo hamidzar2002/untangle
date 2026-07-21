@@ -71,6 +71,15 @@ class UntangleGameTest {
     }
 
     @Test
+    fun visibleLayoutUsesRandomCoordinatesInsteadOfSolutionCircle() {
+        val generated = PuzzleGenerator().generate(nodeCount = 10, level = 2, seed = 808L)
+        val visibleCoordinates = generated.game.points.map { it.x to it.y }.toSet()
+        val solutionCoordinates = generated.solution.points.map { it.x to it.y }.toSet()
+
+        assertFalse(visibleCoordinates == solutionCoordinates)
+    }
+
+    @Test
     fun everySupportedNodeCountProducesTangledPuzzleWithSolvedLayout() {
         val generator = PuzzleGenerator()
 

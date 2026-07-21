@@ -32,7 +32,7 @@ updated model is rendered by the view.
 ## Game loop
 
 - Generated planar puzzles with guaranteed crossing-free solutions
-- Scrambled starting layouts that always contain crossings
+- Randomly scattered starting layouts that always contain crossings
 - Level progression with increasing nodes and connections
 - Completion dialog and next-level navigation
 - Starting node-count selector, new puzzle, restart, and move counter
