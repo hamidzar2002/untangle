@@ -164,6 +164,7 @@ Untangle will be free and supported by Google AdMob.
 
 - AdMob App ID: `ca-app-pub-6961751302262101~7558692283`
 - Banner ad-unit ID: `ca-app-pub-6961751302262101/5961559645`
+- Interstitial ad-unit ID: `ca-app-pub-6961751302262101/6310093757`
 
 AdMob application and ad-unit IDs identify ad inventory; they are not account
 credentials or secrets. AdMob login credentials, payment information, API
@@ -173,12 +174,13 @@ Implemented approach:
 
 - Use GMA Next-Gen SDK `1.2.1` and Google User Messaging Platform (UMP) SDK
   `4.0.0`.
-- Show a standard adaptive banner outside the active puzzle board so the ad
-  never covers points, lines, controls, or completion feedback.
-- If interstitial ads are added, show them only at natural breaks such as after
-  a completed puzzle, never during dragging or immediately on app launch.
-- Do not show an interstitial after every puzzle; use a conservative frequency
-  cap.
+- Do not show a banner on the active game screen; the board keeps the full
+  available height.
+- Preload an interstitial and show it only after every third completed level,
+  before presenting the completion dialog. Never show it while dragging,
+  during restart/new-game actions, immediately on launch, or after level one.
+- If an interstitial is unavailable or fails, continue to the completion dialog
+  immediately.
 - Never make an accidental ad tap likely through layout movement or proximity
   to game controls.
 - Use Google's official test ad IDs in all debug builds. Release builds use the

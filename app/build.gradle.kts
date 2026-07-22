@@ -38,6 +38,11 @@ android {
             "ADMOB_BANNER_ID",
             "\"ca-app-pub-6961751302262101/5961559645\""
         )
+        buildConfigField(
+            "String",
+            "ADMOB_INTERSTITIAL_ID",
+            "\"ca-app-pub-6961751302262101/6310093757\""
+        )
     }
 
     buildFeatures {
@@ -70,6 +75,11 @@ android {
                 "String",
                 "ADMOB_BANNER_ID",
                 "\"ca-app-pub-3940256099942544/9214589741\""
+            )
+            buildConfigField(
+                "String",
+                "ADMOB_INTERSTITIAL_ID",
+                "\"ca-app-pub-3940256099942544/1033173712\""
             )
         }
         release {

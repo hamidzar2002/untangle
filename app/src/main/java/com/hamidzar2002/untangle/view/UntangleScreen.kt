@@ -1,16 +1,11 @@
 package com.hamidzar2002.untangle.view
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
-import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -35,8 +29,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,8 +44,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -61,14 +51,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import com.google.android.libraries.ads.mobile.sdk.banner.AdSize
-import com.google.android.libraries.ads.mobile.sdk.banner.AdView
-import com.google.android.libraries.ads.mobile.sdk.banner.BannerAd
-import com.google.android.libraries.ads.mobile.sdk.banner.BannerAdRequest
-import com.google.android.libraries.ads.mobile.sdk.common.AdLoadCallback
-import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
-import com.hamidzar2002.untangle.BuildConfig
 import com.hamidzar2002.untangle.model.GamePoint
 import com.hamidzar2002.untangle.model.PuzzleGenerator
 import com.hamidzar2002.untangle.model.UntangleGame
@@ -100,7 +82,6 @@ fun UntangleScreen(
     onNewPuzzle: () -> Unit,
     onNextPuzzle: () -> Unit,
     onNodeCountSelected: (Int) -> Unit,
-    showBanner: Boolean = false,
     showPrivacyOptions: Boolean = false,
     onPrivacyOptions: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -147,13 +128,6 @@ fun UntangleScreen(
                 onPrivacyOptions = onPrivacyOptions
             )
 
-            if (showBanner) {
-                UntangleBanner(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { contentDescription = "Advertisement" }
-                )
-            }
         }
     }
 
@@ -507,60 +481,6 @@ private fun NodeStepButton(symbol: String, onClick: () -> Unit) {
         }
     }
 }
-
-@Composable
-private fun UntangleBanner(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val activity = remember(context) { context.findActivity() }
-    val isPreview = LocalInspectionMode.current
-
-    if (activity == null || isPreview) return
-
-    BoxWithConstraints(
-        modifier = modifier,
-        contentAlignment = Alignment.Center
-    ) {
-        val widthDp = maxWidth.value.roundToInt().coerceAtLeast(1)
-        val adSize = remember(activity, widthDp) {
-            AdSize.getLargeAnchoredAdaptiveBannerAdSize(activity, widthDp)
-        }
-        val adView = remember(activity, adSize) { AdView(activity) }
-        val request = remember(adSize) {
-            BannerAdRequest.Builder(
-                BuildConfig.ADMOB_BANNER_ID,
-                adSize
-            ).build()
-        }
-
-        LaunchedEffect(adView, request) {
-            adView.loadAd(
-                request,
-                object : AdLoadCallback<BannerAd> {
-                    override fun onAdFailedToLoad(adError: LoadAdError) {
-                        Log.w(TAG, "Banner failed to load: $adError")
-                    }
-                }
-            )
-        }
-
-        DisposableEffect(adView) {
-            onDispose { adView.destroy() }
-        }
-
-        AndroidView(
-            factory = { adView },
-            modifier = Modifier.wrapContentSize()
-        )
-    }
-}
-
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
-}
-
-private const val TAG = "UntangleBanner"
 
 @Composable
 private fun UntangleBoard(
