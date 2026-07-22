@@ -6,15 +6,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val UntangleColors = darkColorScheme(
-    primary = Color(0xFF6FE7C1),
-    secondary = Color(0xFFFFB86B),
-    background = Color(0xFF111416),
-    surface = Color(0xFF1B2023),
-    onPrimary = Color(0xFF082019),
-    onSecondary = Color(0xFF291708),
-    onBackground = Color(0xFFF0F5F3),
-    onSurface = Color(0xFFF0F5F3),
-    onSurfaceVariant = Color(0xFFAAB6B1)
+    primary = Color(0xFFA8EB72),
+    secondary = Color(0xFF73E5F0),
+    error = Color(0xFFFF7189),
+    background = Color(0xFF050B12),
+    surface = Color(0xFF0E1723),
+    surfaceVariant = Color(0xFF121E2C),
+    outline = Color(0xFF33465C),
+    onPrimary = Color(0xFF10200C),
+    onSecondary = Color(0xFF071B1E),
+    onBackground = Color(0xFFF3F7FA),
+    onSurface = Color(0xFFF3F7FA),
+    onSurfaceVariant = Color(0xFF9AA9BA)
 )
 
 @Composable
@@ -24,4 +27,3 @@ fun UntangleTheme(content: @Composable () -> Unit) {
         content = content
     )
 }
-

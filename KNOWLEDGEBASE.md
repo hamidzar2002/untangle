@@ -84,6 +84,19 @@ count, but the underlying puzzle parameter remains the number of points.
   `model/GameSession.kt`, `controller/UntangleController.kt`, and the stateless
   Compose view in `view/UntangleScreen.kt`.
 
+## Visual design
+
+- The product UI reference is `media/UI_UX_Idea.png`.
+- The playable screen uses a deep slate background, framed panels, luminous
+  cyan nodes and lines, lime success accents, and coral crossing indicators.
+- The puzzle board remains the dominant element. Level and move count live in
+  a compact top status panel; guidance and remaining crossings appear directly
+  below the board; new game, restart, and node selection live in a bottom
+  toolbar.
+- The reference guides hierarchy, palette, and atmosphere. Decorative artwork
+  is not copied into the app, keeping the interface original and lightweight.
+- Ads remain outside the puzzle board and controls.
+
 ## Source references
 
 The implementation should be an idiomatic Kotlin/Jetpack Compose
