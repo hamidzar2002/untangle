@@ -1,5 +1,12 @@
 package com.hamidzar2002.untangle.model
 
+data class CrossingAnalysis(
+    val crossingCount: Int,
+    val crossingEdgeIndexes: Set<Int>
+) {
+    val isSolved: Boolean = crossingCount == 0
+}
+
 data class UntangleGame(
     val points: List<GamePoint>,
     val edges: List<GameEdge>
@@ -26,10 +33,27 @@ data class UntangleGame(
     val isSolved: Boolean
         get() = crossingCount == 0
 
+    fun crossingAnalysis(): CrossingAnalysis {
+        val pairs = crossingPairs()
+        return CrossingAnalysis(
+            crossingCount = pairs.size,
+            crossingEdgeIndexes = pairs.flatMapTo(mutableSetOf()) { pair ->
+                listOf(pair.first, pair.second)
+            }
+        )
+    }
+
     fun crossingEdgeIndexes(): Set<Int> =
-        crossingPairs().flatMapTo(mutableSetOf()) { pair ->
-            listOf(pair.first, pair.second)
+        crossingAnalysis().crossingEdgeIndexes
+
+    fun isPointFree(pointId: Int): Boolean {
+        require(pointId in pointsById) { "Unknown point ID: $pointId" }
+        val crossingEdges = crossingEdgeIndexes()
+        return edges.withIndex().none { (index, edge) ->
+            index in crossingEdges &&
+                (edge.firstPointId == pointId || edge.secondPointId == pointId)
         }
+    }
 
     fun movePoint(pointId: Int, x: Float, y: Float): UntangleGame {
         require(pointId in pointsById) { "Unknown point ID: $pointId" }

@@ -36,6 +36,10 @@ updated model is rendered by the view.
 - Level progression with increasing nodes and connections
 - Completion dialog and next-level navigation
 - Starting node-count selector, new puzzle, restart, and move counter
+- Responsive portrait/landscape board that prioritizes the playable area
+- Large immediate drag targets and single-pass crossing analysis
+- Built-in help page and persistent sound/mute control
+- Matching Google Play and adaptive Android launcher icons
 
 ## Open and run
 

@@ -97,6 +97,36 @@ count, but the underlying puzzle parameter remains the number of points.
   is not copied into the app, keeping the interface original and lightweight.
 - Ads remain outside the puzzle board and controls.
 
+### Device-tested usability
+
+- Real-device references live in `media/real-screenshots/` and cover an Oppo
+  A96 on Android 12 plus a OnePlus 9 on Android 11 in both orientations.
+- Portrait keeps the status and toolbar below the board. Landscape compresses
+  the header and combines status/actions into one bottom row so the board gets
+  most of the available height.
+- Node acquisition uses a 44 dp touch radius and begins immediately without an
+  initial touch-slop wait.
+- Each rendered game state performs one shared crossing analysis; the renderer
+  does not recalculate all segment intersections separately for every edge.
+- The Help page explains dragging, line colours, progression, New/Restart, and
+  sounds. It is reachable from the game toolbar and supports the system Back
+  action.
+- Offline tone effects distinguish a normal move, a node becoming free of
+  crossing lines, and puzzle completion. The header and Help page expose a
+  persistent sound on/off preference.
+
+### App icon
+
+- Google Play icon source of truth: `store-assets/google-play/icon-512.png`.
+- The installed launcher density PNGs are derived from that exact artwork to
+  prevent a Play-listing/installed-app mismatch like the earlier Galaxies
+  rejection.
+- Android 8+ uses an adaptive launcher resource and Android 13+ has a separate
+  monochrome themed-icon layer.
+- The 512 px Play asset is a 32-bit RGBA PNG under 1,024 KB. It has no text or
+  misleading badges, and its essential artwork stays inside the adaptive icon
+  safe zone.
+
 ## Source references
 
 The implementation should be an idiomatic Kotlin/Jetpack Compose

@@ -1,11 +1,15 @@
 package com.hamidzar2002.untangle.view
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -43,6 +47,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -52,6 +57,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hamidzar2002.untangle.model.GamePoint
+import com.hamidzar2002.untangle.model.CrossingAnalysis
 import com.hamidzar2002.untangle.model.PuzzleGenerator
 import com.hamidzar2002.untangle.model.UntangleGame
 import com.hamidzar2002.untangle.ui.theme.UntangleTheme
@@ -77,36 +83,53 @@ fun UntangleScreen(
     moves: Int,
     showCompletion: Boolean,
     onPointMoved: (pointId: Int, x: Float, y: Float) -> Unit,
-    onMoveFinished: () -> Unit,
+    onMoveFinished: (pointId: Int, wasFreeBeforeMove: Boolean) -> Unit,
     onRestart: () -> Unit,
     onNewPuzzle: () -> Unit,
     onNextPuzzle: () -> Unit,
     onNodeCountSelected: (Int) -> Unit,
+    soundEnabled: Boolean = true,
+    onSoundToggle: () -> Unit = {},
     showPrivacyOptions: Boolean = false,
     onPrivacyOptions: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showNodePicker by remember { mutableStateOf(false) }
+    var showHelp by remember { mutableStateOf(false) }
     var nodePickerValue by remember(startingNodeCount) {
         mutableStateOf(startingNodeCount.toFloat())
     }
 
-    Box(
+    val crossingAnalysis = remember(game) { game.crossingAnalysis() }
+    BackHandler(enabled = showHelp) { showHelp = false }
+
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(ScreenTop, ScreenBottom)))
     ) {
+        val compactLandscape = maxWidth > maxHeight
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(
+                    horizontal = if (compactLandscape) 8.dp else 12.dp,
+                    vertical = if (compactLandscape) 6.dp else 10.dp
+                ),
+            verticalArrangement = Arrangement.spacedBy(if (compactLandscape) 6.dp else 10.dp)
         ) {
-            GameHeader(level = level, moves = moves)
+            GameHeader(
+                level = level,
+                moves = moves,
+                soundEnabled = soundEnabled,
+                onSoundToggle = onSoundToggle,
+                compact = compactLandscape
+            )
 
             UntangleBoard(
                 game = game,
+                crossingAnalysis = crossingAnalysis,
                 onPointMoved = onPointMoved,
                 onMoveFinished = onMoveFinished,
                 modifier = Modifier
@@ -114,21 +137,58 @@ fun UntangleScreen(
                     .weight(1f)
             )
 
-            GameStatus(game = game)
-
-            ActionToolbar(
-                startingNodeCount = startingNodeCount,
-                showPrivacyOptions = showPrivacyOptions,
-                onNewPuzzle = onNewPuzzle,
-                onRestart = onRestart,
-                onChooseNodes = {
-                    nodePickerValue = startingNodeCount.toFloat()
-                    showNodePicker = true
-                },
-                onPrivacyOptions = onPrivacyOptions
-            )
+            if (compactLandscape) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    GameStatus(
+                        crossingAnalysis = crossingAnalysis,
+                        compact = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    ActionToolbar(
+                        startingNodeCount = startingNodeCount,
+                        showPrivacyOptions = showPrivacyOptions,
+                        onNewPuzzle = onNewPuzzle,
+                        onRestart = onRestart,
+                        onChooseNodes = {
+                            nodePickerValue = startingNodeCount.toFloat()
+                            showNodePicker = true
+                        },
+                        onHelp = { showHelp = true },
+                        onPrivacyOptions = onPrivacyOptions,
+                        compact = true,
+                        modifier = Modifier.weight(1.35f)
+                    )
+                }
+            } else {
+                GameStatus(crossingAnalysis = crossingAnalysis)
+                ActionToolbar(
+                    startingNodeCount = startingNodeCount,
+                    showPrivacyOptions = showPrivacyOptions,
+                    onNewPuzzle = onNewPuzzle,
+                    onRestart = onRestart,
+                    onChooseNodes = {
+                        nodePickerValue = startingNodeCount.toFloat()
+                        showNodePicker = true
+                    },
+                    onHelp = { showHelp = true },
+                    onPrivacyOptions = onPrivacyOptions
+                )
+            }
 
         }
+    }
+
+    if (showHelp) {
+        HelpPage(
+            soundEnabled = soundEnabled,
+            showPrivacyOptions = showPrivacyOptions,
+            onSoundToggle = onSoundToggle,
+            onPrivacyOptions = onPrivacyOptions,
+            onClose = { showHelp = false }
+        )
     }
 
     if (showCompletion) {
@@ -166,16 +226,29 @@ fun UntangleScreen(
 }
 
 @Composable
-private fun GameHeader(level: Int, moves: Int) {
+private fun GameHeader(
+    level: Int,
+    moves: Int,
+    soundEnabled: Boolean,
+    onSoundToggle: () -> Unit,
+    compact: Boolean
+) {
     Surface(
         color = Panel.copy(alpha = 0.96f),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(if (compact) 14.dp else 18.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, PanelBorder, RoundedCornerShape(18.dp))
+            .border(
+                1.dp,
+                PanelBorder,
+                RoundedCornerShape(if (compact) 14.dp else 18.dp)
+            )
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+            modifier = Modifier.padding(
+                horizontal = if (compact) 12.dp else 18.dp,
+                vertical = if (compact) 5.dp else 10.dp
+            ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -192,67 +265,94 @@ private fun GameHeader(level: Int, moves: Int) {
                 modifier = Modifier.padding(start = 8.dp)
             )
             Spacer(modifier = Modifier.weight(1f))
-            HeaderMetric(label = "LEVEL", value = level.toString())
+            HeaderMetric(label = "LEVEL", value = level.toString(), compact = compact)
             Box(
                 modifier = Modifier
-                    .padding(horizontal = 14.dp)
-                    .size(width = 1.dp, height = 28.dp)
+                    .padding(horizontal = if (compact) 10.dp else 14.dp)
+                    .size(width = 1.dp, height = if (compact) 22.dp else 28.dp)
                     .background(PanelBorder)
             )
-            HeaderMetric(label = "MOVES", value = moves.toString())
+            HeaderMetric(label = "MOVES", value = moves.toString(), compact = compact)
+            IconButton(
+                onClick = onSoundToggle,
+                modifier = Modifier
+                    .padding(start = if (compact) 4.dp else 8.dp)
+                    .size(if (compact) 34.dp else 40.dp)
+                    .semantics {
+                        contentDescription = if (soundEnabled) {
+                            "Mute game sounds"
+                        } else {
+                            "Enable game sounds"
+                        }
+                    }
+            ) {
+                Text(
+                    text = if (soundEnabled) "♪" else "⊘",
+                    color = if (soundEnabled) Lime else MutedText,
+                    fontSize = if (compact) 17.sp else 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun HeaderMetric(label: String, value: String) {
+private fun HeaderMetric(label: String, value: String, compact: Boolean) {
     Column(horizontalAlignment = Alignment.End) {
         Text(
             text = label,
             color = MutedText,
-            fontSize = 9.sp,
+            fontSize = if (compact) 8.sp else 9.sp,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 1.sp
         )
         Text(
             text = value,
             color = Color.White,
-            fontSize = 17.sp,
+            fontSize = if (compact) 14.sp else 17.sp,
             fontWeight = FontWeight.Bold
         )
     }
 }
 
 @Composable
-private fun GameStatus(game: UntangleGame) {
-    val solved = game.isSolved
+private fun GameStatus(
+    crossingAnalysis: CrossingAnalysis,
+    compact: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    val solved = crossingAnalysis.isSolved
     val statusText = when {
         solved -> "Perfect! All lines are untangled."
-        game.crossingCount == 1 -> "Keep going — 1 crossing remains."
-        else -> "Drag the nodes — ${game.crossingCount} crossings remain."
+        crossingAnalysis.crossingCount == 1 -> "Keep going — 1 crossing remains."
+        else -> "Drag the nodes — ${crossingAnalysis.crossingCount} crossings remain."
     }
 
     Surface(
         color = Panel,
         shape = RoundedCornerShape(16.dp),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .border(1.dp, PanelBorder, RoundedCornerShape(16.dp))
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier.padding(
+                horizontal = if (compact) 10.dp else 14.dp,
+                vertical = if (compact) 7.dp else 12.dp
+            ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
                 color = if (solved) Lime.copy(alpha = 0.15f) else Cyan.copy(alpha = 0.12f),
                 shape = CircleShape,
-                modifier = Modifier.size(30.dp)
+                modifier = Modifier.size(if (compact) 26.dp else 30.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = if (solved) "✓" else "◇",
                         color = if (solved) Lime else Cyan,
-                        fontSize = 18.sp,
+                        fontSize = if (compact) 15.sp else 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -260,7 +360,7 @@ private fun GameStatus(game: UntangleGame) {
             Text(
                 text = statusText,
                 color = if (solved) Lime else Color(0xFFDDE6EF),
-                fontSize = 13.sp,
+                fontSize = if (compact) 11.sp else 13.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier
                     .padding(start = 12.dp)
@@ -277,35 +377,51 @@ private fun ActionToolbar(
     onNewPuzzle: () -> Unit,
     onRestart: () -> Unit,
     onChooseNodes: () -> Unit,
-    onPrivacyOptions: () -> Unit
+    onHelp: () -> Unit,
+    onPrivacyOptions: () -> Unit,
+    compact: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
     Surface(
         color = Panel,
         shape = RoundedCornerShape(18.dp),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .border(1.dp, PanelBorder, RoundedCornerShape(18.dp))
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+            modifier = Modifier.padding(
+                horizontal = if (compact) 5.dp else 8.dp,
+                vertical = if (compact) 3.dp else 8.dp
+            ),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             ToolbarAction(
                 symbol = "✦",
                 label = "NEW",
                 onClick = onNewPuzzle,
+                compact = compact,
                 modifier = Modifier.weight(1f)
             )
             ToolbarAction(
                 symbol = "↶",
                 label = "RESTART",
                 onClick = onRestart,
+                compact = compact,
                 modifier = Modifier.weight(1f)
             )
             ToolbarAction(
                 symbol = startingNodeCount.toString(),
                 label = "NODES",
                 onClick = onChooseNodes,
+                compact = compact,
+                modifier = Modifier.weight(1f)
+            )
+            ToolbarAction(
+                symbol = "?",
+                label = "HELP",
+                onClick = onHelp,
+                compact = compact,
                 modifier = Modifier.weight(1f)
             )
             if (showPrivacyOptions) {
@@ -313,6 +429,7 @@ private fun ActionToolbar(
                     symbol = "⋮",
                     label = "PRIVACY",
                     onClick = onPrivacyOptions,
+                    compact = compact,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -325,28 +442,189 @@ private fun ToolbarAction(
     symbol: String,
     label: String,
     onClick: () -> Unit,
+    compact: Boolean,
     modifier: Modifier = Modifier
 ) {
     TextButton(
         onClick = onClick,
-        modifier = modifier.height(52.dp),
+        modifier = modifier.height(if (compact) 42.dp else 52.dp),
         colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = symbol,
                 color = Lime,
-                fontSize = 18.sp,
+                fontSize = if (compact) 15.sp else 18.sp,
                 fontWeight = FontWeight.Bold,
-                lineHeight = 18.sp
+                lineHeight = if (compact) 15.sp else 18.sp
             )
             Text(
                 text = label,
                 color = MutedText,
-                fontSize = 9.sp,
+                fontSize = if (compact) 8.sp else 9.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 0.7.sp
             )
+        }
+    }
+}
+
+@Composable
+private fun HelpPage(
+    soundEnabled: Boolean,
+    showPrivacyOptions: Boolean,
+    onSoundToggle: () -> Unit,
+    onPrivacyOptions: () -> Unit,
+    onClose: () -> Unit
+) {
+    Surface(
+        color = ScreenTop,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "HOW TO PLAY",
+                        color = Lime,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.5.sp
+                    )
+                    Text(
+                        text = "Untangle",
+                        color = Color.White,
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                TextButton(onClick = onClose) {
+                    Text("CLOSE", color = Color.White)
+                }
+            }
+
+            HelpSection(
+                number = "1",
+                title = "Move a node",
+                body = "Touch a glowing node and drag it anywhere on the board. " +
+                    "You can begin slightly outside the node—the touch target is larger " +
+                    "than the visible circle."
+            )
+            HelpSection(
+                number = "2",
+                title = "Remove every crossing",
+                body = "Coral lines are involved in a crossing. Cyan lines are currently " +
+                    "clear. Keep rearranging the nodes until every line turns green."
+            )
+            HelpSection(
+                number = "3",
+                title = "Progress through levels",
+                body = "Completing a puzzle unlocks the next level with one more node and " +
+                    "more connections. New creates a different puzzle; Restart restores " +
+                    "the current puzzle's starting layout."
+            )
+
+            Surface(
+                color = Panel,
+                shape = RoundedCornerShape(18.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, PanelBorder, RoundedCornerShape(18.dp))
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "GAME SOUNDS",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (soundEnabled) {
+                                "Move, clear-node, and completion sounds are on."
+                            } else {
+                                "All gameplay sounds are muted."
+                            },
+                            color = MutedText,
+                            fontSize = 12.sp
+                        )
+                    }
+                    Button(
+                        onClick = onSoundToggle,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (soundEnabled) Lime else Color(0xFF263548),
+                            contentColor = if (soundEnabled) Color(0xFF10200C) else Color.White
+                        )
+                    ) {
+                        Text(if (soundEnabled) "Sound on" else "Sound off")
+                    }
+                }
+            }
+
+            if (showPrivacyOptions) {
+                TextButton(
+                    onClick = onPrivacyOptions,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Privacy choices")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HelpSection(number: String, title: String, body: String) {
+    Surface(
+        color = Panel,
+        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, PanelBorder, RoundedCornerShape(18.dp))
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Surface(
+                color = Cyan.copy(alpha = 0.13f),
+                shape = CircleShape,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(number, color = Cyan, fontWeight = FontWeight.Bold)
+                }
+            }
+            Column(
+                modifier = Modifier.padding(start = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = title,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = body,
+                    color = MutedText,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp
+                )
+            }
         }
     }
 }
@@ -485,23 +763,25 @@ private fun NodeStepButton(symbol: String, onClick: () -> Unit) {
 @Composable
 private fun UntangleBoard(
     game: UntangleGame,
+    crossingAnalysis: CrossingAnalysis,
     onPointMoved: (pointId: Int, x: Float, y: Float) -> Unit,
-    onMoveFinished: () -> Unit,
+    onMoveFinished: (pointId: Int, wasFreeBeforeMove: Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val latestGame by rememberUpdatedState(game)
     val latestOnPointMoved by rememberUpdatedState(onPointMoved)
     val latestOnMoveFinished by rememberUpdatedState(onMoveFinished)
     var draggedPointId by remember { mutableStateOf<Int?>(null) }
+    var draggedPointWasFree by remember { mutableStateOf(false) }
 
     Canvas(
         modifier = modifier
             .semantics {
                 contentDescription =
-                    "Untangle puzzle board with ${game.crossingCount} crossings"
+                    "Untangle puzzle board with ${crossingAnalysis.crossingCount} crossings"
             }
             .pointerInput(Unit) {
-                val hitRadius = 30.dp.toPx()
+                val hitRadius = 44.dp.toPx()
                 val boardPadding = 24.dp.toPx()
 
                 fun pointOffset(point: GamePoint): Offset {
@@ -514,7 +794,12 @@ private fun UntangleBoard(
                 }
 
                 detectDragGestures(
-                    onDragStart = { touch ->
+                    orientationLock = null,
+                    onDragStart = {
+                            down: PointerInputChange,
+                            _: PointerInputChange,
+                            _: Offset ->
+                        val touch = down.position
                         draggedPointId = latestGame.points
                             .map { point -> point.id to pointOffset(point) }
                             .filter { (_, offset) ->
@@ -524,14 +809,23 @@ private fun UntangleBoard(
                                 hypot(touch.x - offset.x, touch.y - offset.y)
                             }
                             ?.first
+                        draggedPointWasFree = draggedPointId?.let(latestGame::isPointFree) ?: false
                     },
-                    onDragEnd = {
-                        val pointWasMoved = draggedPointId != null
+                    onDragEnd = { _: PointerInputChange ->
+                        val movedPointId = draggedPointId
+                        val wasFreeBeforeMove = draggedPointWasFree
                         draggedPointId = null
-                        if (pointWasMoved) latestOnMoveFinished()
+                        draggedPointWasFree = false
+                        if (movedPointId != null) {
+                            latestOnMoveFinished(movedPointId, wasFreeBeforeMove)
+                        }
                     },
-                    onDragCancel = { draggedPointId = null },
-                    onDrag = { change, _ ->
+                    onDragCancel = {
+                        draggedPointId = null
+                        draggedPointWasFree = false
+                    },
+                    shouldAwaitTouchSlop = { false },
+                    onDrag = { change: PointerInputChange, _: Offset ->
                         draggedPointId?.let { pointId ->
                             val usableWidth =
                                 (size.width - (boardPadding * 2f)).coerceAtLeast(1f)
@@ -551,7 +845,7 @@ private fun UntangleBoard(
         val pointRadius = 12.dp.toPx()
         val cornerRadius = 22.dp.toPx()
         val pointsById = game.points.associateBy(GamePoint::id)
-        val crossingEdges = game.crossingEdgeIndexes()
+        val crossingEdges = crossingAnalysis.crossingEdgeIndexes
 
         fun pointOffset(point: GamePoint): Offset = Offset(
             x = boardPadding + (point.x * (size.width - (boardPadding * 2f))),
@@ -581,7 +875,7 @@ private fun UntangleBoard(
             val start = pointOffset(pointsById.getValue(edge.firstPointId))
             val end = pointOffset(pointsById.getValue(edge.secondPointId))
             val color = when {
-                game.isSolved -> Lime
+                crossingAnalysis.isSolved -> Lime
                 index in crossingEdges -> Crossing
                 else -> Cyan
             }
@@ -657,7 +951,7 @@ private fun UntangleScreenPreview() {
             moves = 8,
             showCompletion = false,
             onPointMoved = { _, _, _ -> },
-            onMoveFinished = {},
+            onMoveFinished = { _, _ -> },
             onRestart = {},
             onNewPuzzle = {},
             onNextPuzzle = {},

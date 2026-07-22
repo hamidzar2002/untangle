@@ -53,6 +53,32 @@ class UntangleGameTest {
     }
 
     @Test
+    fun crossingAnalysisReportsCountEdgesAndFreeNodesTogether() {
+        val game = UntangleGame(
+            points = listOf(
+                GamePoint(id = 0, x = 0.1f, y = 0.1f),
+                GamePoint(id = 1, x = 0.9f, y = 0.9f),
+                GamePoint(id = 2, x = 0.1f, y = 0.9f),
+                GamePoint(id = 3, x = 0.9f, y = 0.1f),
+                GamePoint(id = 4, x = 0.5f, y = 0.95f)
+            ),
+            edges = listOf(
+                GameEdge(firstPointId = 0, secondPointId = 1),
+                GameEdge(firstPointId = 2, secondPointId = 3),
+                GameEdge(firstPointId = 4, secondPointId = 2)
+            )
+        )
+
+        val analysis = game.crossingAnalysis()
+
+        assertEquals(1, analysis.crossingCount)
+        assertEquals(setOf(0, 1), analysis.crossingEdgeIndexes)
+        assertFalse(analysis.isSolved)
+        assertFalse(game.isPointFree(0))
+        assertTrue(game.isPointFree(4))
+    }
+
+    @Test
     fun generatedGraphIsMaximalOuterPlanarSize() {
         val generated = PuzzleGenerator().generate(nodeCount = 18, level = 8, seed = 123L)
 
